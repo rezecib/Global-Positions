@@ -1,7 +1,6 @@
 PrefabFiles = {
 	"globalposition_classified",
 	"smoketrail",
-	"globalplayericon",
 	"pings",
 }
 
@@ -51,8 +50,6 @@ AddMinimapAtlas("minimap/ping_danger.xml")
 AddMinimapAtlas("minimap/ping_omw.xml")
 
 local require = GLOBAL.require
-
-local ANR_BETA = GLOBAL.kleifileexists("scripts/prefabs/globalmapicon") or GLOBAL.BRANCH == "staging"
 
 local OVERRIDEMODE = GetModConfigData("OVERRIDEMODE")
 local SHOWPLAYERICONS = GetModConfigData("SHOWPLAYERICONS")
@@ -110,7 +107,6 @@ if NETWORKPLAYERPOSITIONS then
 				inst:AddComponent("globalposition")
 			end)
 		end
-		inst.MiniMapEntity:SetDrawOverFogOfWar(SHOWPLAYERICONS)
 	end
 	
 	for k,prefabname in ipairs(GLOBAL.DST_CHARACTERLIST) do
@@ -762,30 +758,12 @@ ImageButton = require("widgets/imagebutton")
 if NETWORKPLAYERPOSITIONS then --Don't bother unless positions are actually being networked
 	-- First we need to make the mod RPC that the clients will send to stop sharing their location
 	local function SetLocationSharing(player, is_sharing)
-		gp = player.components.globalposition
-		if is_sharing then --they want to share
-			-- if ANR_BETA then
-				-- if SHOWPLAYERICONS then
-					-- AddGlobalIcon(player)
-				-- end
-				-- if SHAREMINIMAPPROGRESS then
-					-- AddMapRevealer(player)
-				-- end
-			-- end
-			if not gp then -- don't add it again if they already have it
-				player:AddComponent("globalposition")
-			end
+		if is_sharing and player.components.globalposition ~= nil then
+			--they want to share, and aren't sharing already
+			player:AddComponent("globalposition")
 		else
-			-- if ANR_BETA then
-				-- if SHOWPLAYERICONS then
-					-- player.icon:Remove()
-					-- player.icon = nil
-				-- end
-				-- if SHAREMINIMAPPROGRESS then
-					-- player:RemoveComponent("maprevealer")
-				-- end
-			-- end
-			if gp then -- make sure they do have it before trying to remove it
+			if player.components.globalposition then
+				-- make sure they do have it before trying to remove it
 				player:RemoveComponent("globalposition")
 			end
 		end

@@ -59,8 +59,6 @@ end
 
 function SmokeEmitter:OnLoad(data)
 	if data.duration and data.duration > 0 then
-		-- self.inst:AddComponent("globalposition")
-		-- self.inst.components.globalposition:SetDuration(data.duration)
 		self.inst.components.smokeemitter:Enable(data.duration)
 	end
 end

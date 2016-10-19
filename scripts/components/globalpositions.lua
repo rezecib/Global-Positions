@@ -60,10 +60,6 @@ function GlobalPositions:AddServerEntity(inst)
 		classified.parentname:set(player.name)
 	end
 	
-	if inst:HasTag("player") then
-		classified.sharemap:set(_GLOBALPOSITIONS_SHAREMINIMAPPROGRESS and not inst:HasTag("playerghost"))
-	end
-	
 	if shouldShowIndicator(classified) then
 		classified.portraitdirty:push()
 		if ThePlayer and ThePlayer.userid ~= inst.userid and ThePlayer.HUD then
@@ -72,6 +68,8 @@ function GlobalPositions:AddServerEntity(inst)
 			self:UpdatePortrait(classified)
 		end
 	end
+	
+	return classified
 end
 
 function GlobalPositions:RemoveServerEntity(inst)
@@ -110,14 +108,6 @@ function GlobalPositions:AddClientEntity(inst)
 			ThePlayer.HUD:RemoveTargetIndicator(inst)
 		end
 		self.positions[inst.GUID] = nil
-	end
-end
-
-function GlobalPositions:SetPosition(inst, pos)
-	local gpc = self.positions[inst.GUID]
-	if gpc and pos then
-		gpc.pos.x:set(pos.x)
-		gpc.pos.z:set(pos.z)
 	end
 end
 

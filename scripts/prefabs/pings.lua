@@ -1,9 +1,3 @@
-local ANR_BETA = kleifileexists("scripts/prefabs/globalmapicon") or BRANCH == "staging"
-
-local function RemoveIcon(inst)
-	inst.icon:Remove()
-end
-
 local function MakePing(prefabname)
 	local function fn()
 		local inst = CreateEntity()
@@ -14,18 +8,6 @@ local function MakePing(prefabname)
 
 		inst.entity:AddTransform()
 		inst.entity:AddMiniMapEntity()
-		
-		if ANR_BETA then
-			-- inst.icon = SpawnPrefab("globalmapicon")
-			-- inst.icon.MiniMapEntity:SetIcon(prefabname..".tex")		
-			-- inst:DoTaskInTime(0, function() inst.icon.Transform:SetPosition(inst.Transform:GetWorldPosition()) end)
-			-- inst.OnRemoveEntity = RemoveIcon
-		else		
-			inst.MiniMapEntity:SetIcon(prefabname..".png")
-			inst.MiniMapEntity:SetPriority(10)
-			inst.MiniMapEntity:SetCanUseCache(false)
-			inst.MiniMapEntity:SetDrawOverFogOfWar(true)
-		end
 		
 		inst:DoTaskInTime(0, function() inst:AddComponent("globalposition") end)
 		

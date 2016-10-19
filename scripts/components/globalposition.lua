@@ -1,15 +1,13 @@
-local ANR_BETA = kleifileexists("scripts/prefabs/globalmapicon") or BRANCH == "staging"
-
-local function AddGlobalIcon(inst, isplayer)
+local function AddGlobalIcon(inst, isplayer, classified)
 	if not GlobalIconAtlasTranslation[inst.prefab] then return end
-	inst.icon = SpawnPrefab("globalmapicon")
-	inst.icon.MiniMapEntity:SetPriority(10)
-	if isplayer then
-		inst.icon:TrackEntity(inst, nil, GlobalIconAtlasTranslation[inst.prefab])
-	else --don't want to waste resources constantly updating the position of things that don't move
-		inst.icon.MiniMapEntity:SetIcon(GlobalIconAtlasTranslation[inst.prefab])
-		inst.icon.Transform:SetPosition(inst.Transform:GetWorldPosition())
+	classified.icon = SpawnPrefab("globalmapicon")
+	classified.icon.MiniMapEntity:SetPriority(10)
+	if inst.MiniMapEntity then
+		classified.icon.MiniMapEntity:CopyIcon(inst.MiniMapEntity)
+	else
+		classified.icon.MiniMapEntity:SetIcon(GlobalIconAtlasTranslation[inst.prefab])
 	end
+	classified:AddChild(classified.icon)
 end
 
 local function AddMapRevealer(inst)
@@ -23,25 +21,14 @@ local function AddMapRevealer(inst)
 	end
 end
 
-local function onpos(self, pos)
-	self.globalpositions:SetPosition(self.inst, pos)
-end
-
 local GlobalPosition = Class(function(self, inst)
     self.inst = inst
-	self.duration = 0
-	self.timeout = false
-	local isplayer = inst:HasTag("player")
-	if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS) or (not isplayer and _GLOBALPOSITIONS_SHOWFIREICONS)) then
-		if ANR_BETA then
-			AddGlobalIcon(inst, isplayer)
-		elseif self.inst.MiniMapEntity then
-			self.inst.MiniMapEntity:SetDrawOverFogOfWar(true)
-		end
-	end
+	self.classified = nil
 	
+	local isplayer = inst:HasTag("player")
+
 	if isplayer then
-		if ANR_BETA then AddMapRevealer(inst) end
+		AddMapRevealer(inst)
 		self.respawnedfromghostfn = function()
 			self:SetMapSharing(_GLOBALPOSITIONS_SHAREMINIMAPPROGRESS)
 			self:PushPortraitDirty()
@@ -57,42 +44,33 @@ local GlobalPosition = Class(function(self, inst)
 	self.inittask = self.inst:DoTaskInTime(0, function()
 		self.inittask = nil
 		self.globalpositions = TheWorld.net.components.globalpositions
-		self.globalpositions:AddServerEntity(self.inst)
-		self.pos = nil
+		self.classified = self.globalpositions:AddServerEntity(self.inst)
+		if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS) or (not isplayer and _GLOBALPOSITIONS_SHOWFIREICONS)) then
+			AddGlobalIcon(inst, isplayer, self.classified)
+		end
 		self.inst:StartUpdatingComponent(self)			
 	end)
 end,
 nil,
 {
-	pos = onpos
 })
 
 function GlobalPosition:OnUpdate(dt)
-	self.pos = self.inst:GetPosition()
-	if self.timeout then
-		self.duration = self.duration - dt
-		if self.duration <= 0 then
-			self.inst:RemoveComponent("globalposition")
-		end
+	local pos = self.inst:GetPosition()
+	if self._x ~= pos.x or self._z ~= pos.z then
+		self._x = pos.x
+		self._z = pos.z
+		self.classified.Transform:SetPosition(pos:Get())
 	end
 end
 
-function GlobalPosition:SetDuration(duration)
-	self.duration = duration
-	self.timeout = true
-end
-
 function GlobalPosition:OnRemoveEntity()
-	if self.inst.icon then
-		self.inst.icon:Remove()
+	if self.inst._globalmapicon then
+		self.inst._globalmapicon:Remove()
 	end
 	
 	if self.inst.components.maprevealer then
 		self.inst.components.maprevealer:Stop()
-	end
-	
-	if self.inst.MiniMapEntity then
-		self.inst.MiniMapEntity:SetDrawOverFogOfWar(false)
 	end
 	
 	if self.respawnedfromghostfn then
@@ -121,16 +99,10 @@ function GlobalPosition:PushPortraitDirty()
 end
 
 function GlobalPosition:SetMapSharing(enabled)
-	if ANR_BETA then
-		if enabled then
-			self.inst.components.maprevealer:Start()
-		else
-			self.inst.components.maprevealer:Stop()
-		end
-	else	
-		if self.globalpositions then
-			self.globalpositions.positions[self.inst.GUID].sharemap:set(enabled)
-		end
+	if enabled then
+		self.inst.components.maprevealer:Start()
+	else
+		self.inst.components.maprevealer:Stop()
 	end
 end
 

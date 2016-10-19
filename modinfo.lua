@@ -9,7 +9,7 @@ author = "rezecib, Sarcen"
 
 --A version number so you can ask people if they are running an old version of your mod.
 --In DST this is also used to determine compatibility for joining servers
-version = "1.5.1"
+version = "1.6.1"
 
 forumthread = ""
 
