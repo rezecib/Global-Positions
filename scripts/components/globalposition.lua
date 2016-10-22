@@ -1,13 +1,19 @@
 local function AddGlobalIcon(inst, isplayer, classified)
-	if not GlobalIconAtlasTranslation[inst.prefab] then return end
-	classified.icon = SpawnPrefab("globalmapicon")
+	if not (GlobalIconAtlasTranslation[inst.prefab] or inst.MiniMapEntity) then return end
+	classified.icon = SpawnPrefab("globalmapicon_noproxy")
 	classified.icon.MiniMapEntity:SetPriority(10)
+	classified.icon2 = SpawnPrefab("globalmapicon")
+	classified.icon2.MiniMapEntity:SetPriority(10)
 	if inst.MiniMapEntity then
+		inst.MiniMapEntity:SetEnabled(false)
 		classified.icon.MiniMapEntity:CopyIcon(inst.MiniMapEntity)
+		classified.icon2.MiniMapEntity:CopyIcon(inst.MiniMapEntity)
 	else
 		classified.icon.MiniMapEntity:SetIcon(GlobalIconAtlasTranslation[inst.prefab])
+		classified.icon2.MiniMapEntity:SetIcon(GlobalIconAtlasTranslation[inst.prefab])
 	end
 	classified:AddChild(classified.icon)
+	classified:AddChild(classified.icon2)
 end
 
 local function AddMapRevealer(inst)
@@ -45,7 +51,8 @@ local GlobalPosition = Class(function(self, inst)
 		self.inittask = nil
 		self.globalpositions = TheWorld.net.components.globalpositions
 		self.classified = self.globalpositions:AddServerEntity(self.inst)
-		if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS) or (not isplayer and _GLOBALPOSITIONS_SHOWFIREICONS)) then
+		if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS)
+		or (not isplayer and _GLOBALPOSITIONS_SHOWFIREICONS)) then
 			AddGlobalIcon(inst, isplayer, self.classified)
 		end
 		self.inst:StartUpdatingComponent(self)			
@@ -65,8 +72,8 @@ function GlobalPosition:OnUpdate(dt)
 end
 
 function GlobalPosition:OnRemoveEntity()
-	if self.inst._globalmapicon then
-		self.inst._globalmapicon:Remove()
+	if self.inst.MiniMapEntity then
+		self.inst.MiniMapEntity:SetEnabled(true)
 	end
 	
 	if self.inst.components.maprevealer then

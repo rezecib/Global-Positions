@@ -4,7 +4,6 @@ end
 
 local function fn()
     local inst = CreateEntity()
-    inst.persists = false
 
 	inst.entity:AddTransform()
     inst.entity:AddNetwork()
@@ -36,6 +35,8 @@ local function fn()
 		end)
         return inst
     end
+
+    inst.persists = false
 
     return inst
 end

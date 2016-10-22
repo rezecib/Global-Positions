@@ -7,7 +7,6 @@ local function MakePing(prefabname)
 		inst:AddTag("FX") -- make sure this doesn't block placement
 
 		inst.entity:AddTransform()
-		inst.entity:AddMiniMapEntity()
 		
 		inst:DoTaskInTime(0, function() inst:AddComponent("globalposition") end)
 		

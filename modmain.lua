@@ -2,6 +2,7 @@ PrefabFiles = {
 	"globalposition_classified",
 	"smoketrail",
 	"pings",
+	"globalmapicon_noproxy",
 }
 
 Assets = {
@@ -284,13 +285,11 @@ function TargetIndicator:GetAvatarAtlas(...)
 		local prefab = self.target.parentprefab:value()
 		if self.target.userid:value() == "nil" then -- this isn't a player
 			self.is_character = false
+			self.prefabname = prefab
 			if GLOBAL_VISIBILITY_LIST[prefab] then
-				self.prefabname = prefab
 				if self.name_label then
 					self.name_label:SetString(self.target.name .. "\n" .. GLOBAL.STRINGS.RMB .. " Dismiss")
 				end
-			else
-				self.prefabname = ""
 			end
 		else -- this is a player
 			for k,v in pairs(GLOBAL.TheNet:GetClientTable() or {}) do -- find the right player
@@ -334,7 +333,8 @@ function TargetIndicator:GetAvatarAtlas(...)
 			
 			return location .. starting .. self.prefabname .. ending .. ".xml"
 		elseif not self.is_character then
-			return GLOBAL_VISIBILITY_LIST[self.prefabname].atlas
+			return (GLOBAL_VISIBILITY_LIST[self.prefabname]
+				and GLOBAL_VISIBILITY_LIST[self.prefabname].atlas)
 				or "images/inventoryimages.xml"
 		end
 		return "images/avatars.xml"
@@ -362,7 +362,8 @@ function TargetIndicator:GetAvatar(...)
 			
 			return starting .. self.prefabname .. ending .. ".tex"
 		elseif not self.is_character then
-			return GLOBAL_VISIBILITY_LIST[self.prefabname].image
+			return (GLOBAL_VISIBILITY_LIST[self.prefabname]
+				and GLOBAL_VISIBILITY_LIST[self.prefabname].image)
 				or self.prefabname .. ".tex"
 		else
 			if self.ishost and self.prefabname == "" then
