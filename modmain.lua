@@ -759,7 +759,7 @@ ImageButton = require("widgets/imagebutton")
 if NETWORKPLAYERPOSITIONS then --Don't bother unless positions are actually being networked
 	-- First we need to make the mod RPC that the clients will send to stop sharing their location
 	local function SetLocationSharing(player, is_sharing)
-		if is_sharing and player.components.globalposition ~= nil then
+		if is_sharing and player.components.globalposition == nil then
 			--they want to share, and aren't sharing already
 			player:AddComponent("globalposition")
 		else
@@ -784,7 +784,8 @@ if NETWORKPLAYERPOSITIONS then --Don't bother unless positions are actually bein
 				 un.."sharelocation.tex", un.."sharelocation.tex",
 				 un.."sharelocation.tex", un.."sharelocation.tex",
 				 nil, {1,1}, {0,0}))
-				playerListing.shareloc:SetPosition(playerListing.mute:GetPosition():Get())
+				--TODO: keep up-to-date with playerstatusscreen's mute; note repositioning that happens later
+				playerListing.shareloc:SetPosition(92, 3, 0)
 				playerListing.shareloc.scale_on_focus = false
 				playerListing.shareloc:SetHoverText((is_sharing and "Uns" or "S").."hare Location", { font = GLOBAL.NEWFONT_OUTLINE, size = 24, offset_x = 0, offset_y = 30, colour = {1,1,1,1}})
 				tint = is_sharing and {1,1,1,1} or {242/255, 99/255, 99/255, 255/255}
@@ -825,7 +826,8 @@ if NETWORKPLAYERPOSITIONS then --Don't bother unless positions are actually bein
 			self.scroll_list.updatefn = function(playerListing, client, ...)
 				self.scroll_list.old_updatefn(playerListing, client, ...)
 				if client.userid == self.owner.userid then
-					playerListing.shareloc:SetPosition(playerListing.mute:GetPosition():Get())
+					--TODO: keep up-to-date with playerstatusscreen's mute; note repositioning that happens later
+					playerListing.shareloc:SetPosition(92, 3, 0)
 					playerListing.viewprofile:SetFocusChangeDir(GLOBAL.MOVE_RIGHT, playerListing.shareloc)
 					playerListing.shareloc:SetFocusChangeDir(GLOBAL.MOVE_LEFT, playerListing.viewprofile)
 					playerListing.shareloc:Show()

@@ -77,7 +77,7 @@ function GlobalPosition:OnRemoveEntity()
 	end
 	
 	if self.inst.components.maprevealer then
-		self.inst.components.maprevealer:Stop()
+		self:SetMapSharing(false)
 	end
 	
 	if self.respawnedfromghostfn then
