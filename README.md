@@ -26,6 +26,7 @@ Option | Description
 **Fire Icons** | _Show_ (default) shows fire icons on the map when they are smoking. _Hide_ doesn't show them even if they're smoking
 **Share Map** | _Enabled_ (default) makes it so that as other players explore the world, your map will update too. Note that this will only work if players or icons are set to be shown.
 **Wilderness Override** | _Disabled_ (default) makes it so that in Wilderness Mode, _Show Fires_ is set to _Always_, and _Player Icons_ and _Player Indicators_ are _Disabled_. This adds some risk of discovery to making fires, so cook with caution! _Enabled_ makes it use whatever settings you have set yourself, rather than that Wilderness preset.
+**Pings** | _Enabled_ (default) allows players to alt+click the map to ping areas for others to see. _Disabled_ doesn't allow pings at all. 
 
 Most options are only used by the host; if you're joining, the only option that gets read is whether to show the player indicators at all times or only on the scoreboard.
 
