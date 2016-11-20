@@ -9,7 +9,7 @@ author = "rezecib, Sarcen"
 
 --A version number so you can ask people if they are running an old version of your mod.
 --In DST this is also used to determine compatibility for joining servers
-version = "1.6.3"
+version = "1.6.4"
 
 forumthread = ""
 
@@ -106,5 +106,15 @@ configuration_options =
 						{description = "Disabled", data = false},
 					},
 		default = false,
+	},
+	{
+		name = "ENABLEPINGS",
+		label = "Pings",
+		hover = "Whether to allow players to ping (alt+click) the map.",
+		options =	{
+						{description = "Enabled", data = true},
+						{description = "Disabled", data = false},
+					},
+		default = true,
 	},
 }

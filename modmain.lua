@@ -1,54 +1,23 @@
 PrefabFiles = {
 	"globalposition_classified",
 	"smoketrail",
-	"pings",
 	"globalmapicon_noproxy",
 }
 
 Assets = {
 	Asset( "IMAGE", "minimap/campfire.tex" ),
 	Asset( "ATLAS", "minimap/campfire.xml" ),
-    Asset( "IMAGE", "minimap/ping_generic.tex" ),
-    Asset( "ATLAS", "minimap/ping_generic.xml" ),
-    Asset( "IMAGE", "minimap/ping_danger.tex" ),
-    Asset( "ATLAS", "minimap/ping_danger.xml" ),
-    Asset( "IMAGE", "minimap/ping_explore.tex" ),
-    Asset( "ATLAS", "minimap/ping_explore.xml" ),
-    Asset( "IMAGE", "minimap/ping_gohere.tex" ),
-    Asset( "ATLAS", "minimap/ping_gohere.xml" ),
-    Asset( "IMAGE", "minimap/ping_omw.tex" ),
-    Asset( "ATLAS", "minimap/ping_omw.xml" ),
 	
 	Asset( "IMAGE", "images/status_bg.tex" ),
 	Asset( "ATLAS", "images/status_bg.xml" ),
+	
     Asset( "IMAGE", "images/sharelocation.tex" ),
     Asset( "ATLAS", "images/sharelocation.xml" ),
     Asset( "IMAGE", "images/unsharelocation.tex" ),
     Asset( "ATLAS", "images/unsharelocation.xml" ),
-    Asset( "IMAGE", "images/Ping.tex" ),
-    Asset( "ATLAS", "images/Ping.xml" ),
-    Asset( "IMAGE", "images/PingDanger.tex" ),
-    Asset( "ATLAS", "images/PingDanger.xml" ),
-    Asset( "IMAGE", "images/PingExplore.tex" ),
-    Asset( "ATLAS", "images/PingExplore.xml" ),
-    Asset( "IMAGE", "images/PingGoHere.tex" ),
-    Asset( "ATLAS", "images/PingGoHere.xml" ),
-    Asset( "IMAGE", "images/PingOmw.tex" ),
-    Asset( "ATLAS", "images/PingOmw.xml" ),
-    Asset( "IMAGE", "images/PingCancel.tex" ),
-    Asset( "ATLAS", "images/PingCancel.xml" ),
-    Asset( "IMAGE", "images/PingDelete.tex" ),
-    Asset( "ATLAS", "images/PingDelete.xml" ),
-    Asset( "IMAGE", "images/PingClear.tex" ),
-    Asset( "ATLAS", "images/PingClear.xml" ),
 }
 
 AddMinimapAtlas("minimap/campfire.xml")
-AddMinimapAtlas("minimap/ping_generic.xml")
-AddMinimapAtlas("minimap/ping_gohere.xml")
-AddMinimapAtlas("minimap/ping_explore.xml")
-AddMinimapAtlas("minimap/ping_danger.xml")
-AddMinimapAtlas("minimap/ping_omw.xml")
 
 local require = GLOBAL.require
 
@@ -64,6 +33,19 @@ local FIREOPTIONS = GetModConfigData("FIREOPTIONS")
 local SHOWFIRES = FIREOPTIONS < 3
 local NEEDCHARCOAL = FIREOPTIONS == 2
 local SHOWFIREICONS = GetModConfigData("SHOWFIREICONS")
+local ENABLEPINGS = GetModConfigData("ENABLEPINGS")
+if ENABLEPINGS then --Only request loading of ping assets if pings are enabled
+	table.insert(PrefabFiles, "pings")
+	for _,ping in ipairs({"generic", "gohere", "explore", "danger", "omw"}) do
+		table.insert(Assets, Asset("IMAGE", "minimap/ping_"..ping..".tex"))
+		table.insert(Assets, Asset("ATLAS", "minimap/ping_"..ping..".xml"))
+		AddMinimapAtlas("minimap/ping_"..ping..".xml")
+	end
+	for _,action in ipairs({"", "Danger", "Explore", "GoHere", "Omw", "Cancel", "Delete", "Clear"}) do
+		table.insert(Assets, Asset("IMAGE", "images/Ping"..action..".tex"))
+		table.insert(Assets, Asset("ATLAS", "images/Ping"..action..".xml"))
+	end
+end
 
 local mode = GLOBAL.TheNet:GetServerGameMode()
 if mode == "wilderness" and not OVERRIDEMODE then --by default, have different settings for wilderness
@@ -259,11 +241,13 @@ local GLOBAL_VISIBILITY_LIST = {
 	ping_gohere = {atlas = "images/PingGoHere.xml", image = "PingGoHere.tex"},
 }
 
-GLOBAL.STRINGS.NAMES.PING_GENERIC = "Point of Interest"
-GLOBAL.STRINGS.NAMES.PING_DANGER = "Danger"
-GLOBAL.STRINGS.NAMES.PING_OMW = "On My Way"
-GLOBAL.STRINGS.NAMES.PING_EXPLORE = "Explore Here"
-GLOBAL.STRINGS.NAMES.PING_GOHERE = "Go Here"
+if ENABLEPINGS then
+	GLOBAL.STRINGS.NAMES.PING_GENERIC = "Point of Interest"
+	GLOBAL.STRINGS.NAMES.PING_DANGER = "Danger"
+	GLOBAL.STRINGS.NAMES.PING_OMW = "On My Way"
+	GLOBAL.STRINGS.NAMES.PING_EXPLORE = "Explore Here"
+	GLOBAL.STRINGS.NAMES.PING_GOHERE = "Go Here"
+end
 
 local OldOnMouseButton = TargetIndicator.OnMouseButton
 function TargetIndicator:OnMouseButton(button, down, ...)
@@ -520,92 +504,99 @@ GLOBAL.FrontEnd._ctor = function(TheFrontEnd, ...)
 end
 
 --[[ Patch the map to allow names to show on hover-over and pings ]]--
-
-local pings = {}
-
-local function ReceivePing(player, pingtype, x, y, z)
-	if pingtype == "delete" then
-		--Find the nearest ping and delete it (if it was actually somewhat close)
-		mindistsq, minping = math.huge, nil
-		for _,ping in pairs(pings) do
-			local px, py, pz = ping.Transform:GetWorldPosition()
-			dq = GLOBAL.distsq(x, z, px, pz)
-			if dq < mindistsq then
-				mindistsq = dq
-				minping = ping
-			end
-		end
-		-- Check that their mouse is actually somewhat close to it first, ~20
-		if mindistsq < 400 then
-			pings[minping.GUID] = nil
-			minping:Remove()
-		end
-	elseif pingtype == "clear" then
-		for _,ping in pairs(pings) do
-			ping:Remove()
-		end
-	else
-		local ping = GLOBAL.SpawnPrefab("ping_"..pingtype)
-		ping.OnRemoveEntity = function(inst) pings[inst.GUID] = nil end
-		ping.parentuserid = player.userid
-		ping.Transform:SetPosition(x,y,z)
-		pings[ping.GUID] = ping
-	end
-end
-AddModRPCHandler(modname, "Ping", ReceivePing)
-
 local STARTSCALE = 0.25
 local NORMSCALE = 1
 local pingwheel = nil
 local pingwheelup = false
 local activepos = nil
-local function ShowPingWheel(position)
-	if pingwheelup then return end
-	pingwheelup = true
-	SetModHUDFocus("PingWheel", true)
-		
-	activepos = position
-	if GLOBAL.TheInput:ControllerAttached() then
-		local scr_w, scr_h = TheSim:GetScreenSize()
-		pingwheel:SetPosition(scr_w/2, scr_h/2)
-	else	
-		pingwheel:SetPosition(GLOBAL.TheInput:GetScreenPosition():Get())
+local ReceivePing = nil
+local ShowPingWheel = nil
+local HidePingWheel = nil
+local pings = {}
+if ENABLEPINGS then
+	ReceivePing = function(player, pingtype, x, y, z)
+		if pingtype == "delete" then
+			--Find the nearest ping and delete it (if it was actually somewhat close)
+			mindistsq, minping = math.huge, nil
+			for _,ping in pairs(pings) do
+				local px, py, pz = ping.Transform:GetWorldPosition()
+				dq = GLOBAL.distsq(x, z, px, pz)
+				if dq < mindistsq then
+					mindistsq = dq
+					minping = ping
+				end
+			end
+			-- Check that their mouse is actually somewhat close to it first, ~20
+			if mindistsq < 400 then
+				pings[minping.GUID] = nil
+				minping:Remove()
+			end
+		elseif pingtype == "clear" then
+			for _,ping in pairs(pings) do
+				ping:Remove()
+			end
+		else
+			local ping = GLOBAL.SpawnPrefab("ping_"..pingtype)
+			ping.OnRemoveEntity = function(inst) pings[inst.GUID] = nil end
+			ping.parentuserid = player.userid
+			ping.Transform:SetPosition(x,y,z)
+			pings[ping.GUID] = ping
+		end
 	end
-	pingwheel:Show()
-	pingwheel:ScaleTo(STARTSCALE, NORMSCALE, .25)
-end
+	AddModRPCHandler(modname, "Ping", ReceivePing)
 
-local function HidePingWheel(cancel)
-	if not pingwheelup or activepos == nil then return end
-	pingwheelup = false
-	SetModHUDFocus("PingWheel", false)
-	
-	pingwheel:Hide()
-	pingwheel.inst.UITransform:SetScale(STARTSCALE, STARTSCALE, 1)
-				
-	if pingwheel.activegesture and pingwheel.activegesture ~= "cancel" and not cancel then
-		SendModRPCToServer(MOD_RPC[modname]["Ping"], pingwheel.activegesture, activepos:Get())
+	ShowPingWheel = function(position)
+		if pingwheelup then return end
+		pingwheelup = true
+		SetModHUDFocus("PingWheel", true)
+			
+		activepos = position
+		if GLOBAL.TheInput:ControllerAttached() then
+			local scr_w, scr_h = TheSim:GetScreenSize()
+			pingwheel:SetPosition(scr_w/2, scr_h/2)
+		else	
+			pingwheel:SetPosition(GLOBAL.TheInput:GetScreenPosition():Get())
+		end
+		pingwheel:Show()
+		pingwheel:ScaleTo(STARTSCALE, NORMSCALE, .25)
 	end
-	activepos = nil
+
+	HidePingWheel = function(cancel)
+		if not pingwheelup or activepos == nil then return end
+		pingwheelup = false
+		SetModHUDFocus("PingWheel", false)
+		
+		pingwheel:Hide()
+		pingwheel.inst.UITransform:SetScale(STARTSCALE, STARTSCALE, 1)
+					
+		if pingwheel.activegesture and pingwheel.activegesture ~= "cancel" and not cancel then
+			SendModRPCToServer(MOD_RPC[modname]["Ping"], pingwheel.activegesture, activepos:Get())
+		end
+		activepos = nil
+	end
+	GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
+		if button == 1000 and not down then
+			HidePingWheel()
+		end
+	end)
 end
-GLOBAL.TheInput:AddMouseButtonHandler(function(button, down, x, y)
-	if button == 1000 and not down then
-		HidePingWheel()
-	end
-end)
 
 AddClassPostConstruct("widgets/mapwidget", function(MapWidget)
 	MapWidget.offset = GLOBAL.Vector3(0,0,0)
 	-- Hoverers get their text from the owner's tooltip; we set the MapWidget to the owner
 	MapWidget.nametext = require("widgets/maphoverer")()
-	MapWidget.pingwheel = require("widgets/pingwheel")()
-	pingwheel = MapWidget.pingwheel
-	pingwheel.radius = pingwheel.radius * 1.1
-	pingwheel:Hide()
-	pingwheel.inst.UITransform:SetScale(STARTSCALE, STARTSCALE, 1)
+	if ENABLEPINGS then
+		MapWidget.pingwheel = require("widgets/pingwheel")()
+		pingwheel = MapWidget.pingwheel
+		pingwheel.radius = pingwheel.radius * 1.1
+		pingwheel:Hide()
+		pingwheel.inst.UITransform:SetScale(STARTSCALE, STARTSCALE, 1)
+	end
 
 	function MapWidget:OnUpdate(dt)
-		pingwheel:OnUpdate()
+		if ENABLEPINGS then
+			pingwheel:OnUpdate()
+		end
 		if not self.shown or pingwheelup then return end
 		
 		-- Begin copy-pasted code (small edits to match modmain environment)
@@ -711,7 +702,7 @@ end)
 
 --[[ Patch the Map Screen to disable the hovertext when getting closed, and add ping interface]]--
 AddClassPostConstruct("screens/mapscreen", function(MapScreen)
-	if GLOBAL.TheInput:ControllerAttached() then
+	if ENABLEPINGS and GLOBAL.TheInput:ControllerAttached() then
 		MapScreen.ping_reticule = MapScreen:AddChild(GLOBAL.require("widgets/uianim")())
 		MapScreen.ping_reticule:GetAnimState():SetBank("reticule")
 		MapScreen.ping_reticule:GetAnimState():SetBuild("reticule")
@@ -724,33 +715,35 @@ AddClassPostConstruct("screens/mapscreen", function(MapScreen)
 	local OldOnBecomeInactive = MapScreen.OnBecomeInactive
 	function MapScreen:OnBecomeInactive(...)
 		self.minimap.nametext:SetString("")
-		HidePingWheel(true) -- consider it to be a cancellation
+		if ENABLEPINGS then HidePingWheel(true) end -- consider it to be a cancellation
 		OldOnBecomeInactive(self, ...)
 	end
 	
-	function MapScreen:OnMouseButton(button, down, ...)
-		-- Alt-click
-		if button == 1000 and down and GLOBAL.TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
-			ShowPingWheel(self.minimap:GetWorldMousePosition())
-		end
-	end
-	
-	local OldOnControl = MapScreen.OnControl
-	function MapScreen:OnControl(control, down, ...)
-		if control == GLOBAL.CONTROL_MENU_MISC_4 then --right-stick click
-			if down then
+	if ENABLEPINGS then
+		function MapScreen:OnMouseButton(button, down, ...)
+			-- Alt-click
+			if button == 1000 and down and GLOBAL.TheInput:IsControlPressed(GLOBAL.CONTROL_FORCE_INSPECT) then
 				ShowPingWheel(self.minimap:GetWorldMousePosition())
-			else
-				HidePingWheel()
 			end
-			return true
 		end
-		return OldOnControl(self, control, down, ...)
-	end
-	local OldGetHelpText = MapScreen.GetHelpText
-	function MapScreen:GetHelpText(...)
-		return OldGetHelpText(self, ...) .. "  " .. GLOBAL.TheInput:GetLocalizedControl(
-			GLOBAL.TheInput:GetControllerID(), GLOBAL.CONTROL_MENU_MISC_4) .. " Ping"
+		
+		local OldOnControl = MapScreen.OnControl
+		function MapScreen:OnControl(control, down, ...)
+			if control == GLOBAL.CONTROL_MENU_MISC_4 then --right-stick click
+				if down then
+					ShowPingWheel(self.minimap:GetWorldMousePosition())
+				else
+					HidePingWheel()
+				end
+				return true
+			end
+			return OldOnControl(self, control, down, ...)
+		end
+		local OldGetHelpText = MapScreen.GetHelpText
+		function MapScreen:GetHelpText(...)
+			return OldGetHelpText(self, ...) .. "  " .. GLOBAL.TheInput:GetLocalizedControl(
+				GLOBAL.TheInput:GetControllerID(), GLOBAL.CONTROL_MENU_MISC_4) .. " Ping"
+		end
 	end
 end)
 
