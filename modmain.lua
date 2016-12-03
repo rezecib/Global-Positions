@@ -1,3 +1,43 @@
+--[[
+Note to other modders:
+I tried to write this so that you could add global positions to other things in your mod.
+Note that because Global Positions has a very low priority, it loads after almost every other mod.
+I did this so that mod characters would have been added already, so we can get their icons.
+So, in order to add your own things to Global Positions, I recommend something like the following:
+
+-- Check if Global Positions is loaded or going to load:
+local GLOBAL_POSITIONS = GLOBAL.KnownModIndex:IsModEnabled("workshop-378160973")
+for k,v in pairs(GLOBAL.KnownModIndex:GetModsToLoad()) do
+	GLOBAL_POSITIONS = GLOBAL_POSITIONS or v == "workshop-378160973"
+end
+
+if GLOBAL_POSITIONS then
+    --Do this in a world postinit to make sure it runs after Global Positions loads
+    AddPrefabPostInit("world", function(inst)
+        --Add data for the target indicator's icon:
+        -- (if you don't add this, it won't make indicators)
+        -- You will have to make this image if it doesn't exist (standard procedure for images)
+        GLOBAL._GLOBALPOSITIONS_TARGET_INDICATOR_ICONS.some_mod_prefab = {
+                -- atlas is left nil if the image is in inventoryimages
+                -- image is left nil if the image is just the key.tex (in this case, some_mod_prefab.tex)
+                atlas = "images/some_mod_prefab.xml",
+                image = nil,
+            }
+        --Tell GlobalPositions what minimap icon to use:
+        -- (if you don't add this, it won't have a minimap icon, unless it already has one)
+        -- You will have to make this icon if it doesn't exist (see other minimap icon mods)
+        GLOBAL._GLOBALPOSITIONS_MAP_ICONS.some_mod_prefab = "some_mod_prefab.tex"
+    end)
+    
+    --Add the globalposition component to things you want to be visible
+    AddPrefabPostInit("some_mod_prefab", function(inst)
+        --You might want some more logic to when this gets added
+        --For a complex example, you can look at the firepit postinit and the smokeemitter component
+        inst:AddComponent("globalposition")
+    end)
+end
+]]
+
 PrefabFiles = {
 	"globalposition_classified",
 	"smoketrail",
@@ -63,7 +103,6 @@ GLOBAL._GLOBALPOSITIONS_SHAREMINIMAPPROGRESS = SHAREMINIMAPPROGRESS
 GLOBAL._GLOBALPOSITIONS_SHOWPLAYERICONS = SHOWPLAYERICONS
 GLOBAL._GLOBALPOSITIONS_SHOWFIREICONS = SHOWFIREICONS
 GLOBAL._GLOBALPOSITIONS_SHOWPLAYERINDICATORS = SHOWPLAYERINDICATORS
-GLOBAL._GLOBALPOSITIONS_SHOWFIREINDICATORS = SHOWFIRES
 
 --#rezecib this is needed to make sure the normal ones disappear when you get far enough
 -- (don't want to be clogging the screen with arrows, so only show the global ones
@@ -225,21 +264,25 @@ function TargetIndicator:IsCharacterState2()
 end
 
 -- This is for the target indicator images; map icons inherit directly from the prefab
-local GLOBAL_VISIBILITY_LIST = {
+local TARGET_INDICATOR_ICONS = {
 	-- atlas is left nil if the image is in inventoryimages
 	-- image is left nil if the image is just the key.tex
-	-- for example, setting both fields for campfire to nil would result in these values:
+	-- for example, setting both fields for campfire to nil results in these values:
 	-- campfire = {atlas = "images/inventoryimages.xml", image = "campfire.tex"}
-	campfire = {atlas = nil, image = nil},
-	firepit = {atlas = nil, image = nil},
-	deluxe_firepit = {atlas = "images/inventoryimages/deluxe_firepit.xml", image = nil},
-	heat_star = {atlas = "images/inventoryimages/heat_star.xml", image = nil},
 	ping_generic = {atlas = "images/Ping.xml", image = "Ping.tex"},
 	ping_danger = {atlas = "images/PingDanger.xml", image = "PingDanger.tex"},
 	ping_omw = {atlas = "images/PingOmw.xml", image = "PingOmw.tex"},
 	ping_explore = {atlas = "images/PingExplore.xml", image = "PingExplore.tex"},
 	ping_gohere = {atlas = "images/PingGoHere.xml", image = "PingGoHere.tex"},
 }
+if SHOWFIRES then
+    TARGET_INDICATOR_ICONS.campfire = {atlas = nil, image = nil}
+    TARGET_INDICATOR_ICONS.firepit = {atlas = nil, image = nil}
+    TARGET_INDICATOR_ICONS.deluxe_firepit = {atlas = "images/inventoryimages/deluxe_firepit.xml", image = nil}
+    TARGET_INDICATOR_ICONS.heat_star = {atlas = "images/inventoryimages/heat_star.xml", image = nil}
+end
+-- Expose this so that other mods can add data for things they want to have icons/indicators for
+GLOBAL._GLOBALPOSITIONS_TARGET_INDICATOR_ICONS = TARGET_INDICATOR_ICONS
 
 if ENABLEPINGS then
 	GLOBAL.STRINGS.NAMES.PING_GENERIC = "Point of Interest"
@@ -270,7 +313,7 @@ function TargetIndicator:GetAvatarAtlas(...)
 		if self.target.userid:value() == "nil" then -- this isn't a player
 			self.is_character = false
 			self.prefabname = prefab
-			if GLOBAL_VISIBILITY_LIST[prefab] then
+			if TARGET_INDICATOR_ICONS[prefab] then
 				if self.name_label then
 					self.name_label:SetString(self.target.name .. "\n" .. GLOBAL.STRINGS.RMB .. " Dismiss")
 				end
@@ -317,8 +360,8 @@ function TargetIndicator:GetAvatarAtlas(...)
 			
 			return location .. starting .. self.prefabname .. ending .. ".xml"
 		elseif not self.is_character then
-			return (GLOBAL_VISIBILITY_LIST[self.prefabname]
-				and GLOBAL_VISIBILITY_LIST[self.prefabname].atlas)
+			return (TARGET_INDICATOR_ICONS[self.prefabname]
+				and TARGET_INDICATOR_ICONS[self.prefabname].atlas)
 				or "images/inventoryimages.xml"
 		end
 		return "images/avatars.xml"
@@ -346,8 +389,8 @@ function TargetIndicator:GetAvatar(...)
 			
 			return starting .. self.prefabname .. ending .. ".tex"
 		elseif not self.is_character then
-			return (GLOBAL_VISIBILITY_LIST[self.prefabname]
-				and GLOBAL_VISIBILITY_LIST[self.prefabname].image)
+			return (TARGET_INDICATOR_ICONS[self.prefabname]
+				and TARGET_INDICATOR_ICONS[self.prefabname].image)
 				or self.prefabname .. ".tex"
 		else
 			if self.ishost and self.prefabname == "" then
@@ -387,7 +430,7 @@ AddClassPostConstruct("screens/playerhud", function(PlayerHud)
 		local ret = OldSetMainCharacter(self, ...)
 		local client_table = GLOBAL.TheNet:GetClientTable() or {}
 		for k,v in pairs(GLOBAL.TheWorld.net.components.globalpositions.positions) do
-			if v.userid:value() == "nil" then
+			if v.userid:value() == "nil" and TARGET_INDICATOR_ICONS[v.parentprefab:value()] then
 				self:AddTargetIndicator(v)
 				self.targetindicators[#self.targetindicators]:Hide()
 				v:UpdatePortrait()
@@ -834,8 +877,7 @@ end
 
 --[[ Capture nonstandard minimap icons for mod characters ]]--
 --#rezecib code from Global Player Icons, by Sarcen (also see prefabs/globalplayericon.lua)
-GLOBAL.AllGlobalIcons = {}
-GLOBAL.GlobalIconAtlasTranslation = {}
+GLOBAL._GLOBALPOSITIONS_MAP_ICONS = {}
 
 -- Hack to determine MiniMap icon names
 for i,atlases in ipairs(GLOBAL.ModManager:GetPostInitData("MinimapAtlases")) do
@@ -848,7 +890,7 @@ for i,atlases in ipairs(GLOBAL.ModManager:GetPostInitData("MinimapAtlases")) do
 					if element then
 						local elementName = string.match(element, "^(.*)[.]")
 						if elementName then
-							GLOBAL.GlobalIconAtlasTranslation[elementName] = element
+							GLOBAL._GLOBALPOSITIONS_MAP_ICONS[elementName] = element
 						end
 					end
 				end
@@ -858,10 +900,10 @@ for i,atlases in ipairs(GLOBAL.ModManager:GetPostInitData("MinimapAtlases")) do
 	end
 end
 
-for prefab,data in pairs(GLOBAL_VISIBILITY_LIST) do
-	GLOBAL.GlobalIconAtlasTranslation[prefab] = prefab .. ".tex"
+for prefab,data in pairs(TARGET_INDICATOR_ICONS) do
+	GLOBAL._GLOBALPOSITIONS_MAP_ICONS[prefab] = prefab .. ".tex"
 end
 
 for _,prefab in pairs(GLOBAL.DST_CHARACTERLIST) do
-	GLOBAL.GlobalIconAtlasTranslation[prefab] = prefab .. ".png"
+	GLOBAL._GLOBALPOSITIONS_MAP_ICONS[prefab] = prefab .. ".png"
 end

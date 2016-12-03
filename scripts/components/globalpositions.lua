@@ -30,7 +30,7 @@ end
 
 function shouldShowIndicator(gpc)
 	local show = gpc.userid:value() ~= "nil" and _GLOBALPOSITIONS_SHOWPLAYERINDICATORS
-	show = show or (gpc.userid:value() == "nil" and _GLOBALPOSITIONS_SHOWFIREINDICATORS)
+	show = show or (gpc.userid:value() == "nil" and _GLOBALPOSITIONS_TARGET_INDICATOR_ICONS[gpc.parentprefab:value()])
 	return show
 end
 
