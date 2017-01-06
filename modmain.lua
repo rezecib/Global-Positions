@@ -595,7 +595,7 @@ if ENABLEPINGS then
 			
 		activepos = position
 		if GLOBAL.TheInput:ControllerAttached() then
-			local scr_w, scr_h = TheSim:GetScreenSize()
+			local scr_w, scr_h = GLOBAL.TheSim:GetScreenSize()
 			pingwheel:SetPosition(scr_w/2, scr_h/2)
 		else	
 			pingwheel:SetPosition(GLOBAL.TheInput:GetScreenPosition():Get())
