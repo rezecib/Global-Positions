@@ -2,10 +2,10 @@ local function AddGlobalIcon(inst, isplayer, classified)
 	if not (_GLOBALPOSITIONS_MAP_ICONS[inst.prefab] or inst.MiniMapEntity) then return end
 	classified.icon = SpawnPrefab("globalmapicon_noproxy")
 	classified.icon.MiniMapEntity:SetPriority(10)
-	classified.icon.MiniMapEntity:SetRestriction("")
+	classified.icon.MiniMapEntity:SetRestriction("player")
 	classified.icon2 = SpawnPrefab("globalmapicon")
 	classified.icon2.MiniMapEntity:SetPriority(10)
-	classified.icon2.MiniMapEntity:SetRestriction("")
+	classified.icon2.MiniMapEntity:SetRestriction("player")
 	if inst.MiniMapEntity then
 		inst.MiniMapEntity:SetEnabled(false)
 		classified.icon.MiniMapEntity:CopyIcon(inst.MiniMapEntity)
