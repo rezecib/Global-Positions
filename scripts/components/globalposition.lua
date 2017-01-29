@@ -2,8 +2,10 @@ local function AddGlobalIcon(inst, isplayer, classified)
 	if not (_GLOBALPOSITIONS_MAP_ICONS[inst.prefab] or inst.MiniMapEntity) then return end
 	classified.icon = SpawnPrefab("globalmapicon_noproxy")
 	classified.icon.MiniMapEntity:SetPriority(10)
+	classified.icon.MiniMapEntity:SetRestriction("")
 	classified.icon2 = SpawnPrefab("globalmapicon")
 	classified.icon2.MiniMapEntity:SetPriority(10)
+	classified.icon2.MiniMapEntity:SetRestriction("")
 	if inst.MiniMapEntity then
 		inst.MiniMapEntity:SetEnabled(false)
 		classified.icon.MiniMapEntity:CopyIcon(inst.MiniMapEntity)
@@ -52,7 +54,10 @@ local GlobalPosition = Class(function(self, inst)
 		self.globalpositions = TheWorld.net.components.globalpositions
 		self.classified = self.globalpositions:AddServerEntity(self.inst)
 		if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS)
-		or (not isplayer and _GLOBALPOSITIONS_SHOWFIREICONS)) then
+		--current buggy line?
+		or (not isplayer and (_GLOBALPOSITIONS_SHOWFIREICONS))) then
+		--potential fix to pings being hidden when fire icons are hidden
+		-- or (not isplayer and (self.inst.prefab:find("ping_") or _GLOBALPOSITIONS_SHOWFIREICONS))) then
 			AddGlobalIcon(inst, isplayer, self.classified)
 		end
 		self.inst:StartUpdatingComponent(self)			
