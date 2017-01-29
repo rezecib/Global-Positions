@@ -54,10 +54,7 @@ local GlobalPosition = Class(function(self, inst)
 		self.globalpositions = TheWorld.net.components.globalpositions
 		self.classified = self.globalpositions:AddServerEntity(self.inst)
 		if ((isplayer and _GLOBALPOSITIONS_SHOWPLAYERICONS)
-		--current buggy line?
-		or (not isplayer and (_GLOBALPOSITIONS_SHOWFIREICONS))) then
-		--potential fix to pings being hidden when fire icons are hidden
-		-- or (not isplayer and (self.inst.prefab:find("ping_") or _GLOBALPOSITIONS_SHOWFIREICONS))) then
+		or (not isplayer and (self.inst.prefab:find("ping_") or _GLOBALPOSITIONS_SHOWFIREICONS))) then
 			AddGlobalIcon(inst, isplayer, self.classified)
 		end
 		self.inst:StartUpdatingComponent(self)			
