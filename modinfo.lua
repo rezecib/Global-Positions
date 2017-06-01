@@ -88,8 +88,7 @@ configuration_options =
 		name = "SHAREMINIMAPPROGRESS",
 		label = "Share Map",
 		hover = "Share map exploration between players. This will only work if" .. 
-				"\n'Player Indicators' and 'Player Icons' are not both disabled." ..
-				"\nMap revealed this way cannot be saved/loaded.",
+				"\n'Player Indicators' and 'Player Icons' are not both disabled.",
 		options =	{
 						{description = "Enabled", data = true},
 						{description = "Disabled", data = false},
