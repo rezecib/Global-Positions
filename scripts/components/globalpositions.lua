@@ -27,7 +27,7 @@ function GlobalPositions:OnSave()
 	elseif self.cached_worldmap then
 		-- They had map sharing enabled before but disabled it,
 		-- cache the map and pass it along in case they reenable it later
-		data.worldmap = cached_worldmap
+		data.worldmap = self.cached_worldmap
 	end
 	return data
 end
