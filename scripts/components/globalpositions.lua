@@ -11,7 +11,52 @@ local pingcolours = {
 local GlobalPositions = Class(function(self, inst)
 	self.inst = inst
 	self.positions = {}
+	if not TheWorld.ismastersim
+	or not _GLOBALPOSITIONS_SHAREMINIMAPPROGRESS
+	or not TheNet:IsDedicated() then return end
+	-- Players will wait to get their map from here until this says it's loaded
+	self.map_loaded = false
+	inst.entity:AddMapExplorer()
 end)
+
+function GlobalPositions:OnSave()
+	if not TheNet:IsDedicated() then return end
+	local data = {}
+	if self.inst.MapExplorer then
+		data.worldmap = self.inst.MapExplorer:RecordMap()
+	elseif self.cached_worldmap then
+		-- They had map sharing enabled before but disabled it,
+		-- cache the map and pass it along in case they reenable it later
+		data.worldmap = cached_worldmap
+	end
+	return data
+end
+
+function GlobalPositions:OnLoad(data)
+	-- TheWorld can't have its own map on non-dedicated servers
+	if TheNet:IsDedicated() and data and data.worldmap then
+		if self.inst.MapExplorer then
+			-- This seems to depend on some networking before it can succeed
+			-- However, it always in my testing succeeds before it tries to load the player map
+			-- So that's good enough, I suppose?
+			local function TryLoadingWorldMap()
+				-- if TheNet:IsDedicated() then
+				if self.inst.MapExplorer:LearnRecordedMap(data.worldmap) then
+					-- print("Succeeded at loading the world map.")
+					self.map_loaded = true
+				else
+					-- print("Failed to load world map, trying again...")
+					self.inst:DoTaskInTime(0, TryLoadingWorldMap)
+				end
+				-- end
+			end
+			TryLoadingWorldMap()
+		else
+			-- Pass it along in case they reenable map sharing later
+			self.cached_worldmap = data.worldmap
+		end
+	end
+end
 
 function GlobalPositions:UpdatePortrait(inst)
 	if ThePlayer and ThePlayer.HUD and ThePlayer.HUD.targetindicators then

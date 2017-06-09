@@ -115,29 +115,61 @@ local oldmaxrangesq = (oldmaxrange*1.5)*(oldmaxrange*1.5)
 -- when in reasonable ranges
 GLOBAL.TUNING.MAX_INDICATOR_RANGE = 2000
 
--- for post-caves merge
 AddPrefabPostInit("forest_network", function(inst) inst:AddComponent("globalpositions") end)
 AddPrefabPostInit("cave_network", function(inst) inst:AddComponent("globalpositions") end)
 
 if NETWORKPLAYERPOSITIONS then
 	--#rezecib this is an alternative to AddPlayerPostInit that avoids the overhead added to all prefabs
-	-- however, if a character mod has a lower priority than this, it will miss them
-	-- for this reason, we set the priority to -1000
-	local function PlayerPostInit(inst)
-		if GLOBAL.TheWorld.ismastersim then
-			inst:ListenForEvent("setowner", function()
-				inst:AddComponent("globalposition")
-			end)
-		end
+	-- note that it only runs on the server, but for our purposes this is what we want
+	local is_dedicated = GLOBAL.TheNet:IsDedicated()
+	local function PlayerPostInit(TheWorld, player)
+		player:ListenForEvent("setowner", function()
+			player:AddComponent("globalposition")
+			if SHAREMINIMAPPROGRESS then
+				if is_dedicated then
+					local function TryLoadingWorldMap()
+						if not TheWorld.net.components.globalpositions.map_loaded or not player.player_classified.MapExplorer:LearnRecordedMap(TheWorld.net.MapExplorer:RecordMap()) then
+							player:DoTaskInTime(0, TryLoadingWorldMap)
+						end
+					end
+					TryLoadingWorldMap()
+				elseif player ~= GLOBAL.AllPlayers[1] then --The host always has the master map
+					local function TryLoadingHostMap()
+						if not player.player_classified.MapExplorer:LearnRecordedMap(GLOBAL.AllPlayers[1].player_classified.MapExplorer:RecordMap()) then
+							player:DoTaskInTime(0, TryLoadingHostMap)
+						else
+						end
+					end
+					TryLoadingHostMap()
+				end
+			end
+		end)
 	end
+	AddPrefabPostInit("world", function(inst)
+		inst:ListenForEvent("ms_playerspawn", PlayerPostInit)
+	end)
 	
-	for k,prefabname in ipairs(GLOBAL.DST_CHARACTERLIST) do
-		AddPrefabPostInit(prefabname, PlayerPostInit)
-	end
-
-	if GLOBAL.MODCHARACTERLIST then
-		for k,prefabname in ipairs(GLOBAL.MODCHARACTERLIST) do
-			AddPrefabPostInit(prefabname, PlayerPostInit)
+	-- TheWorld can only have its own map on a dedicated server
+	if SHAREMINIMAPPROGRESS and is_dedicated then
+		-- On a dedicated server, maintain a separate copy of all shared map
+		-- This ensures that map revealed by players who have sharing off never gets shared
+		-- unfortunately this is not possible on client-servers
+		MapRevealer = require("components/maprevealer")
+		
+		MapRevealer_ctor = MapRevealer._ctor
+		MapRevealer._ctor = function(self, inst)
+			self.counter = 0
+			MapRevealer_ctor(self, inst)
+		end
+		
+		MapRevealer_RevealMapToPlayer = MapRevealer.RevealMapToPlayer
+		MapRevealer.RevealMapToPlayer = function(self, player)
+			MapRevealer_RevealMapToPlayer(self, player)
+			self.counter = self.counter + 1
+			if self.counter > #GLOBAL.AllPlayers then
+				GLOBAL.TheWorld.net.MapExplorer:RevealArea(self.inst.Transform:GetWorldPosition())
+				self.counter = 0
+			end
 		end
 	end
 end
@@ -791,8 +823,8 @@ AddClassPostConstruct("screens/mapscreen", function(MapScreen)
 end)
 
 --[[ Patch the scoreboard to add a button and RPC for disable location sharing ]]--
-ImageButton = require("widgets/imagebutton")
 if NETWORKPLAYERPOSITIONS then --Don't bother unless positions are actually being networked
+	local ImageButton = require("widgets/imagebutton")
 	-- First we need to make the mod RPC that the clients will send to stop sharing their location
 	local function SetLocationSharing(player, is_sharing)
 		if is_sharing and player.components.globalposition == nil then
