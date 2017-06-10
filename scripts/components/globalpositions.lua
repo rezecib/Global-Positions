@@ -16,14 +16,13 @@ local GlobalPositions = Class(function(self, inst)
 	or not TheNet:IsDedicated() then return end
 	-- Players will wait to get their map from here until this says it's loaded
 	self.map_loaded = false
-	inst.entity:AddMapExplorer()
 end)
 
 function GlobalPositions:OnSave()
 	if not TheNet:IsDedicated() then return end
 	local data = {}
-	if self.inst.MapExplorer then
-		data.worldmap = self.inst.MapExplorer:RecordMap()
+	if TheWorld.worldmapexplorer.MapExplorer then
+		data.worldmap = TheWorld.worldmapexplorer.MapExplorer:RecordMap()
 	elseif self.cached_worldmap then
 		-- They had map sharing enabled before but disabled it,
 		-- cache the map and pass it along in case they reenable it later
@@ -35,13 +34,13 @@ end
 function GlobalPositions:OnLoad(data)
 	-- TheWorld can't have its own map on non-dedicated servers
 	if TheNet:IsDedicated() and data and data.worldmap then
-		if self.inst.MapExplorer then
+		if TheWorld.worldmapexplorer.MapExplorer then
 			-- This seems to depend on some networking before it can succeed
 			-- However, it always in my testing succeeds before it tries to load the player map
 			-- So that's good enough, I suppose?
 			local function TryLoadingWorldMap()
 				-- if TheNet:IsDedicated() then
-				if self.inst.MapExplorer:LearnRecordedMap(data.worldmap) then
+				if TheWorld.worldmapexplorer.MapExplorer:LearnRecordedMap(data.worldmap) then
 					-- print("Succeeded at loading the world map.")
 					self.map_loaded = true
 				else

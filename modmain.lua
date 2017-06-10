@@ -42,6 +42,7 @@ PrefabFiles = {
 	"globalposition_classified",
 	"smoketrail",
 	"globalmapicon_noproxy",
+	"worldmapexplorer",
 }
 
 Assets = {
@@ -128,7 +129,7 @@ if NETWORKPLAYERPOSITIONS then
 			if SHAREMINIMAPPROGRESS then
 				if is_dedicated then
 					local function TryLoadingWorldMap()
-						if not TheWorld.net.components.globalpositions.map_loaded or not player.player_classified.MapExplorer:LearnRecordedMap(TheWorld.net.MapExplorer:RecordMap()) then
+						if not TheWorld.net.components.globalpositions.map_loaded or not player.player_classified.MapExplorer:LearnRecordedMap(TheWorld.worldmapexplorer.MapExplorer:RecordMap()) then
 							player:DoTaskInTime(0, TryLoadingWorldMap)
 						end
 					end
@@ -137,7 +138,6 @@ if NETWORKPLAYERPOSITIONS then
 					local function TryLoadingHostMap()
 						if not player.player_classified.MapExplorer:LearnRecordedMap(GLOBAL.AllPlayers[1].player_classified.MapExplorer:RecordMap()) then
 							player:DoTaskInTime(0, TryLoadingHostMap)
-						else
 						end
 					end
 					TryLoadingHostMap()
@@ -146,6 +146,9 @@ if NETWORKPLAYERPOSITIONS then
 		end)
 	end
 	AddPrefabPostInit("world", function(inst)
+		if is_dedicated then
+			inst.worldmapexplorer = GLOBAL.SpawnPrefab("worldmapexplorer")
+		end
 		inst:ListenForEvent("ms_playerspawn", PlayerPostInit)
 	end)
 	
@@ -158,7 +161,7 @@ if NETWORKPLAYERPOSITIONS then
 		
 		MapRevealer_ctor = MapRevealer._ctor
 		MapRevealer._ctor = function(self, inst)
-			self.counter = 0
+			self.counter = 1
 			MapRevealer_ctor(self, inst)
 		end
 		
@@ -167,8 +170,8 @@ if NETWORKPLAYERPOSITIONS then
 			MapRevealer_RevealMapToPlayer(self, player)
 			self.counter = self.counter + 1
 			if self.counter > #GLOBAL.AllPlayers then
-				GLOBAL.TheWorld.net.MapExplorer:RevealArea(self.inst.Transform:GetWorldPosition())
-				self.counter = 0
+				GLOBAL.TheWorld.worldmapexplorer.MapExplorer:RevealArea(self.inst.Transform:GetWorldPosition())
+				self.counter = 1
 			end
 		end
 	end
