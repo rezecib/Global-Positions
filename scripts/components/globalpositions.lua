@@ -21,7 +21,7 @@ end)
 function GlobalPositions:OnSave()
 	if not TheNet:IsDedicated() then return end
 	local data = {}
-	if TheWorld.worldmapexplorer.MapExplorer then
+	if TheWorld.worldmapexplorer and TheWorld.worldmapexplorer.MapExplorer then
 		data.worldmap = TheWorld.worldmapexplorer.MapExplorer:RecordMap()
 	elseif self.cached_worldmap then
 		-- They had map sharing enabled before but disabled it,
