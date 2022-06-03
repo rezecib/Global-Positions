@@ -186,7 +186,7 @@ local function FirePostInit(inst, offset)
 		if NEEDCHARCOAL then
 			local OldTakeFuelItem = inst.components.fueled.TakeFuelItem
 			inst.components.fueled.TakeFuelItem = function(self, item, ...)
-				if item.prefab == "charcoal" and self:CanAcceptFuelItem(item) then
+				if type(item) == 'table' and item.prefab == "charcoal" and self:CanAcceptFuelItem(item) then
 					duration = duration + item.components.fuel.fuelvalue * self.bonusmult
 					-- we don't want it to ever go higher than the max burn of a firepit
 					-- note that this can result in smoking after burning, but this actually
