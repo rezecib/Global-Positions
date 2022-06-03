@@ -99,10 +99,14 @@ end
 GlobalPosition.OnRemoveFromEntity = GlobalPosition.OnRemoveEntity
 
 function GlobalPosition:PushPortraitDirty()
-	self.inst:DoTaskInTime(1, function()
+	self.inst:DoTaskInTime(1 + math.random() * 9, function()
 		if self.globalpositions then
 			local pos = self.globalpositions.positions[self.inst.GUID]
-			pos.portraitdirty:push()
+			if type(pos) == "table" and pos.portraitdirty and pos.portraitdirty.push then
+				pos.portraitdirty:push()
+			else
+				self:PushPortraitDirty()
+			end
 		end
 	end)
 end
