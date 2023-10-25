@@ -591,8 +591,17 @@ local ReceivePing = nil
 local ShowPingWheel = nil
 local HidePingWheel = nil
 local pings = {}
+local checkstring = GLOBAL.checkstring
+local checknumber = GLOBAL.checknumber
+
 if ENABLEPINGS then
 	ReceivePing = function(player, pingtype, x, y, z)
+		-- Clients can send and type of data here, including wrong data types.
+		-- Trusting the client is a really bad idea, so we need to check everything.
+		if not checkstring(pingtype) or not checknumber(x) or not checknumber(y) or not checknumber(z) then
+			return
+		end
+
 		if pingtype == "delete" then
 			--Find the nearest ping and delete it (if it was actually somewhat close)
 			mindistsq, minping = math.huge, nil
@@ -614,7 +623,16 @@ if ENABLEPINGS then
 				ping:Remove()
 			end
 		else
-			local ping = GLOBAL.SpawnPrefab("ping_"..pingtype)
+			local prefab = "ping_"..pingtype
+			-- This check is really crucial, because otherwise the server will crash if the prefab doesn't exist.
+			-- SpawnPrefab also does some filtering on what prefabs can be spawned, specifically it seems to trim
+			-- everything after the first slash, so if a malicious client sends a pingtype of /deerclops,
+			-- it will literally spawn the Deerclops boss.
+			if not GLOBAL.PrefabExists(prefab) then
+				return
+			end
+
+			local ping = GLOBAL.SpawnPrefab(prefab)
 			ping.OnRemoveEntity = function(inst) pings[inst.GUID] = nil end
 			ping.parentuserid = player.userid
 			ping.Transform:SetPosition(x,y,z)
