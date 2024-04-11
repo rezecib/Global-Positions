@@ -75,13 +75,17 @@ local SHOWFIRES = FIREOPTIONS < 3
 local NEEDCHARCOAL = FIREOPTIONS == 2
 local SHOWFIREICONS = GetModConfigData("SHOWFIREICONS")
 local ENABLEPINGS = GetModConfigData("ENABLEPINGS")
+local valid_ping_actions = {}
 if ENABLEPINGS then --Only request loading of ping assets if pings are enabled
 	table.insert(PrefabFiles, "pings")
 	for _,ping in ipairs({"generic", "gohere", "explore", "danger", "omw"}) do
 		table.insert(Assets, Asset("IMAGE", "minimap/ping_"..ping..".tex"))
 		table.insert(Assets, Asset("ATLAS", "minimap/ping_"..ping..".xml"))
 		AddMinimapAtlas("minimap/ping_"..ping..".xml")
+		valid_ping_actions[ping] = true
 	end
+	valid_ping_actions.delete = true
+	valid_ping_actions.clear = true
 	for _,action in ipairs({"", "Danger", "Explore", "GoHere", "Omw", "Cancel", "Delete", "Clear"}) do
 		table.insert(Assets, Asset("IMAGE", "images/Ping"..action..".tex"))
 		table.insert(Assets, Asset("ATLAS", "images/Ping"..action..".xml"))
@@ -591,14 +595,12 @@ local ReceivePing = nil
 local ShowPingWheel = nil
 local HidePingWheel = nil
 local pings = {}
-local checkstring = GLOBAL.checkstring
 local checknumber = GLOBAL.checknumber
 
 if ENABLEPINGS then
 	ReceivePing = function(player, pingtype, x, y, z)
-		-- Clients can send and type of data here, including wrong data types.
-		-- Trusting the client is a really bad idea, so we need to check everything.
-		if not checkstring(pingtype) or not checknumber(x) or not checknumber(y) or not checknumber(z) then
+		-- Validate client input, because this could be arbitrary data of the wrong type or invalid prefabs
+		if not (valid_ping_actions[pingtype] and checknumber(x) and checknumber(y) and checknumber(z)) then
 			return
 		end
 
