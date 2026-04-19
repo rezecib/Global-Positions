@@ -691,27 +691,14 @@ AddClassPostConstruct("widgets/mapwidget", function(MapWidget)
 		pingwheel.inst.UITransform:SetScale(STARTSCALE, STARTSCALE, 1)
 	end
 
-	function MapWidget:OnUpdate(dt)
+	local OldOnUpdate = MapWidget.OnUpdate
+	function MapWidget:OnUpdate(...)
 		if ENABLEPINGS then
 			pingwheel:OnUpdate()
 		end
 		if not self.shown or pingwheelup then return end
 		
-		-- Begin copy-pasted code (small edits to match modmain environment)
-		if GLOBAL.TheInput:IsControlPressed(GLOBAL.CONTROL_PRIMARY) then
-			local pos = GLOBAL.TheInput:GetScreenPosition()
-			if self.lastpos then
-				local scale = 0.25
-				local dx = scale * ( pos.x - self.lastpos.x )
-				local dy = scale * ( pos.y - self.lastpos.y )
-				self:Offset( dx, dy ) --#rezecib changed this so we can capture offsets
-			end
-			
-			self.lastpos = pos
-		else
-			self.lastpos = nil
-		end
-		-- End copy-pasted code
+		OldOnUpdate(self, ...)
 		
 		if SHOWPLAYERICONS then
 			local p = self:GetWorldMousePosition()
