@@ -700,13 +700,26 @@ AddClassPostConstruct("widgets/mapwidget", function(MapWidget)
 		-- Begin copy-pasted code (small edits to match modmain environment)
 		if GLOBAL.TheInput:IsControlPressed(GLOBAL.CONTROL_PRIMARY) then
 			local pos = GLOBAL.TheInput:GetScreenPosition()
-			if self.lastpos then
+			if self.lastpos and (pos.x ~= self.lastpos.x or pos.y ~= self.lastpos.y) then
+				local dx = pos.x - self.lastpos.x
+				local dy = pos.y - self.lastpos.y
+				-- WX-78 drones & portable storage set MapScreen:SetHandleLmbUp(true),
+				-- which calls minimap:StartDragThreshold so a stationary click isn't
+				-- swallowed as a pan. Honor the flag: below threshold, skip Offset
+				-- (otherwise OnMinimapMoved cancels the LMB-up action and the
+				-- MAPSCOUT_MAP / MAPDELIVER_MAP click is lost).
+				if self.dragthreshold then
+					local dsq = dx * dx + dy * dy
+					local threshold = self.dragthreshold * math.min(GLOBAL.TheSim:GetScreenSize())
+					if dsq < threshold * threshold then
+						return
+					end
+					self:CancelDragThreshold()
+				end
 				local scale = 0.25
-				local dx = scale * ( pos.x - self.lastpos.x )
-				local dy = scale * ( pos.y - self.lastpos.y )
-				self:Offset( dx, dy ) --#rezecib changed this so we can capture offsets
+				self:Offset( scale * dx, scale * dy ) --#rezecib changed this so we can capture offsets
 			end
-			
+
 			self.lastpos = pos
 		else
 			self.lastpos = nil
